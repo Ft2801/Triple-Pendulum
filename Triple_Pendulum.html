@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendolo Triplo Pro</title>
+    <style>
+        :root {
+            --bg-color: #0f172a; /* Dark Slate */
+            --glass-bg: rgba(15, 23, 42, 0.85); /* Più opaco per leggibilità */
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #e2e8f0;
+            --accent: #38bdf8; /* Sky Blue */
+            --danger: #f43f5e; /* Rose */
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 40% 50%, #1e293b 0%, #020617 100%);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 260px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            z-index: 10;
+
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            
+            /* Scrollbar sottile */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) transparent;
+        }
+
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+        h2 {
+            margin: 0 0 5px 0;
+            font-size: 1rem;
+            color: #fff;
+            font-weight: 300;
+            letter-spacing: 1px;
+            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+        }
+
+        .group-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 6px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .input-row label {
+            flex: 1;
+            color: #94a3b8;
+        }
+
+        input[type="range"] {
+            width: 80px;
+            height: 4px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        input[type="number"] {
+            width: 45px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--glass-border);
+            color: var(--accent);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            padding: 3px;
+            text-align: center;
+            font-family: monospace;
+        }
+        input[type="number"]:focus { outline: 1px solid var(--accent); }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .checkbox-row input { accent-color: var(--accent); }
+
+        .buttons-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #btnToggle {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        #btnToggle:hover { background: var(--accent); color: #000; }
+
+        #btnReset {
+            background: rgba(244, 63, 94, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        #btnReset:hover { background: var(--danger); color: #fff; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div class="sidebar">
+        <h2>PENDOLO TRIPLO</h2>
+
+        <!-- Controlli Principali -->
+        <div class="buttons-row">
+            <button id="btnToggle">Avvia / Pausa</button>
+            <button id="btnReset">Reset</button>
+        </div>
+
+        <!-- Fisica -->
+        <div class="control-group">
+            <div class="group-title">Fisica del Sistema</div>
+            
+            <div class="input-row">
+                <label>Velocità Sim</label>
+                <input type="range" id="s_speed" min="1" max="30" value="10">
+                <input type="number" id="n_speed" value="10">
+            </div>
+
+            <div class="input-row">
+                <label>Gravità (g)</label>
+                <input type="range" id="s_grav" min="0" max="30" step="0.1" value="9.8">
+                <input type="number" id="n_grav" value="9.8">
+            </div>
+
+            <div class="input-row">
+                <label>Attrito Aria</label>
+                <input type="range" id="s_fric" min="0" max="1.0" step="0.01" value="0.00">
+                <input type="number" id="n_fric" value="0.00">
+            </div>
+        </div>
+
+        <!-- Angoli -->
+        <div class="control-group">
+            <div class="group-title">Posizione Iniziale (Rad)</div>
+            <div class="input-row">
+                <label>Angolo 1</label>
+                <input type="range" id="s_a1" min="0" max="6.28" step="0.01" value="2.35">
+                <input type="number" id="n_a1" value="2.35">
+            </div>
+            <div class="input-row">
+                <label>Angolo 2</label>
+                <input type="range" id="s_a2" min="0" max="6.28" step="0.01" value="2.35">
+                <input type="number" id="n_a2" value="2.35">
+            </div>
+            <div class="input-row">
+                <label>Angolo 3</label>
+                <input type="range" id="s_a3" min="0" max="6.28" step="0.01" value="2.35">
+                <input type="number" id="n_a3" value="2.35">
+            </div>
+        </div>
+
+        <!-- Grafica -->
+        <div class="control-group">
+            <div class="group-title">Effetti Visivi</div>
+            
+            <div class="input-row">
+                <label>Durata Scia</label>
+                <input type="range" id="s_trail" min="0" max="100" value="85">
+                <input type="number" id="n_trail" value="85">
+            </div>
+
+            <div class="input-row">
+                <label>Intensità Glow</label>
+                <input type="range" id="s_glow" min="0" max="60" value="20">
+                <input type="number" id="n_glow" value="20">
+            </div>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="chk_arms" checked>
+                Visualizza Aste
+            </label>
+        </div>
+    </div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+
+// --- Parametri Globali ---
+let width, height, cx, cy, scaleFactor;
+let sidebarWidth = 300; // Spazio riservato per non sovrapporre il menu
+
+// Fisica
+let g = 9.81;
+let damping = 0.00;
+const m = 1.0;
+let simSpeed = 10;
+const dt_base = 0.01;
+
+// Stato: [th1, th2, th3, w1, w2, w3]
+let state = [0, 0, 0, 0, 0, 0];
+let running = false;
+
+// Grafica
+let trailAlpha = 0.15; 
+let glowStrength = 20;
+let showArms = true;
+const colors = ['#f43f5e', '#38bdf8', '#facc15']; // Neon Colors
+
+// --- Binding Input (Sync Slider <-> Number) ---
+function bindInput(key, initialVal, onChange) {
+    const s = document.getElementById(`s_${key}`);
+    const n = document.getElementById(`n_${key}`);
+    
+    // Imposta valori iniziali
+    if(initialVal !== null) {
+        s.value = initialVal;
+        n.value = initialVal;
+    }
+
+    const update = (val) => {
+        if(onChange) onChange(parseFloat(val));
+    };
+
+    s.addEventListener('input', () => { n.value = s.value; update(s.value); });
+    n.addEventListener('input', () => { s.value = n.value; update(n.value); });
+}
+
+// Collegamento Variabili
+bindInput('speed', 10, v => simSpeed = parseInt(v));
+bindInput('grav', 9.8, v => g = v);
+bindInput('fric', 0.00, v => damping = v);
+bindInput('glow', 20, v => glowStrength = parseInt(v));
+
+// Logica Trail inversa (Slider alto = Scia lunga = Alpha basso)
+bindInput('trail', 85, v => {
+    trailAlpha = 1 - (v / 105); // 105 per permettere scia quasi infinita
+    if(trailAlpha < 0.01) trailAlpha = 0.01;
+    if(trailAlpha > 1) trailAlpha = 1;
+});
+
+// Aggiornamento manuale angoli
+const manualUpdate = () => {
+    if(!running) {
+        const a1 = parseFloat(document.getElementById('n_a1').value);
+        const a2 = parseFloat(document.getElementById('n_a2').value);
+        const a3 = parseFloat(document.getElementById('n_a3').value);
+        state = [a1, a2, a3, 0, 0, 0];
+        
+        // Reset completo schermo per evitare scie sporche
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+        draw(true); // Force draw no trail
+    }
+};
+
+['a1', 'a2', 'a3'].forEach(k => bindInput(k, null, manualUpdate));
+
+document.getElementById('chk_arms').addEventListener('change', e => {
+    showArms = e.target.checked;
+    if(!running) draw(true);
+});
+
+// --- Gestione Dimensioni e Centratura ---
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Centro: metà altezza, ma per la larghezza consideriamo che a destra c'è il menu
+    // Spostiamo il centro un po' a sinistra per bilanciare visivamente
+    const availableWidth = width - (width > 800 ? 280 : 0); // Se schermo largo, sottrai sidebar
+    cx = availableWidth / 2;
+    cy = height / 2;
+
+    // Calcolo scala per non uscire MAI dallo schermo
+    const minDim = Math.min(availableWidth, height);
+    const safetyMargin = 80;
+    scaleFactor = (minDim / 2 - safetyMargin) / 3.0;
+
+    if(!running) {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+        draw(true);
+    }
+}
+window.addEventListener('resize', resize);
+
+// --- Motore Fisico (Lagrange + RK4) ---
+function solve3x3(A, B) {
+    // Solver diretto per Ax=B dimensione 3 (più veloce di Gauss generico)
+    const det = A[0][0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1]) - A[0][1]*(A[1][0]*A[2][2]-A[1][2]*A[2][0]) + A[0][2]*(A[1][0]*A[2][1]-A[1][1]*A[2][0]);
+    const invDet = 1/det;
+    
+    const x = [0,0,0];
+    x[0] = (B[0]*(A[1][1]*A[2][2]-A[1][2]*A[2][1]) - A[0][1]*(B[1]*A[2][2]-A[1][2]*B[2]) + A[0][2]*(B[1]*A[2][1]-A[1][1]*B[2])) * invDet;
+    x[1] = (A[0][0]*(B[1]*A[2][2]-A[1][2]*B[2]) - B[0]*(A[1][0]*A[2][2]-A[1][2]*A[2][0]) + A[0][2]*(A[1][0]*B[2]-B[1]*A[2][0])) * invDet;
+    x[2] = (A[0][0]*(A[1][1]*B[2]-B[1]*A[2][1]) - A[0][1]*(A[1][0]*B[2]-B[1]*A[2][0]) + B[0]*(A[1][0]*A[2][1]-A[1][1]*A[2][0])) * invDet;
+    return x;
+}
+
+function getDerivatives(s) {
+    const t1=s[0], t2=s[1], t3=s[2], w1=s[3], w2=s[4], w3=s[5];
+    const L = 10; // Lunghezza fisica unitaria per calcoli inerzia
+
+    const M = [
+        [(m*3)*L, (m*2)*L*Math.cos(t1-t2), m*L*Math.cos(t1-t3)],
+        [(m*2)*L*Math.cos(t2-t1), (m*2)*L, m*L*Math.cos(t2-t3)],
+        [m*L*Math.cos(t3-t1), m*L*Math.cos(t3-t2), m*L]
+    ];
+
+    // Aggiunta termine smorzamento viscoso (-damping * w)
+    const B = [
+        -g*(m*3)*Math.sin(t1) - (m*2)*L*w2*w2*Math.sin(t1-t2) - m*L*w3*w3*Math.sin(t1-t3) - damping*w1*50,
+        -g*(m*2)*Math.sin(t2) + (m*2)*L*w1*w1*Math.sin(t1-t2) - m*L*w3*w3*Math.sin(t2-t3) - damping*w2*50,
+        -g*m*Math.sin(t3) + m*L*w1*w1*Math.sin(t1-t3) + m*L*w2*w2*Math.sin(t2-t3) - damping*w3*50
+    ];
+
+    const alpha = solve3x3(M, B);
+    return [w1, w2, w3, alpha[0], alpha[1], alpha[2]];
+}
+
+function rk4(s, dt) {
+    const k1 = getDerivatives(s);
+    const k2 = getDerivatives(s.map((v, i) => v + k1[i]*dt*0.5));
+    const k3 = getDerivatives(s.map((v, i) => v + k2[i]*dt*0.5));
+    const k4 = getDerivatives(s.map((v, i) => v + k3[i]*dt));
+    return s.map((v, i) => v + (dt/6)*(k1[i] + 2*k2[i] + 2*k3[i] + k4[i]));
+}
+
+// --- Rendering ---
+
+function draw(forceClear = false) {
+    // 1. Disegno Scia
+    // IMPORTANTE: Reset shadowBlur prima di disegnare il rettangolo di pulizia
+    // Questo risolve il "bug" dello sfondo che si illumina/sfarfalla
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+
+    if (forceClear) {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+    } else {
+        // Disegno il velo semitrasparente per la scia
+        ctx.fillStyle = `rgba(15, 23, 42, ${trailAlpha})`;
+        ctx.fillRect(0, 0, width, height);
+    }
+
+    const l = scaleFactor;
+    
+    // Coordinate
+    let x = [cx], y = [cy];
+    x[1] = x[0] + l * Math.sin(state[0]);
+    y[1] = y[0] + l * Math.cos(state[0]);
+    x[2] = x[1] + l * Math.sin(state[1]);
+    y[2] = y[1] + l * Math.cos(state[1]);
+    x[3] = x[2] + l * Math.sin(state[2]);
+    y[3] = y[2] + l * Math.cos(state[2]);
+
+    // 2. Disegno Aste (Senza Glow)
+    if (showArms) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.moveTo(x[0], y[0]);
+        ctx.lineTo(x[1], y[1]);
+        ctx.lineTo(x[2], y[2]);
+        ctx.lineTo(x[3], y[3]);
+        ctx.stroke();
+    }
+
+    // Perno centrale
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+
+    // 3. Disegno Sfere (Con Glow)
+    for(let i=1; i<=3; i++) {
+        ctx.beginPath();
+        ctx.arc(x[i], y[i], 9, 0, Math.PI*2); // Sfera leggermente più grande
+        
+        // Attiviamo il glow SOLO per le sfere
+        if(glowStrength > 0) {
+            ctx.shadowBlur = glowStrength;
+            ctx.shadowColor = colors[i-1];
+        }
+        
+        ctx.fillStyle = colors[i-1];
+        ctx.fill();
+        
+        // Reset immediato per evitare contaminazioni
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+    }
+}
+
+// --- Loop ---
+
+function loop() {
+    if (running) {
+        for(let i=0; i<simSpeed; i++) {
+            state = rk4(state, dt_base);
+        }
+    }
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// --- Eventi Pulsanti ---
+document.getElementById('btnToggle').addEventListener('click', () => running = !running);
+document.getElementById('btnReset').addEventListener('click', () => {
+    running = false;
+    manualUpdate();
+});
+
+// Start
+resize();
+manualUpdate();
+loop();
+
+</script>
+</body>
+</html>
